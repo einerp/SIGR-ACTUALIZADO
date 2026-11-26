@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  deployments: read
 
 concurrency:
   group: sigr-${{ github.ref }}
@@ -52,7 +53,7 @@ jobs:
           retention-days: 7
 
   despliegue:
-    name: Deploy a producción y smoke test
+    name: Confirmar deploy de Vercel y smoke test
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: calidad
     runs-on: ubuntu-latest
@@ -69,27 +70,36 @@ jobs:
         with:
           node-version: 20
 
-      - name: Descargar configuración de Vercel
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: npx --yes vercel@latest pull --yes --environment=production --token ${{ secrets.VERCEL_TOKEN }}
-
-      - name: Construir funciones y frontend en Vercel
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: npx --yes vercel@latest build --prod --token ${{ secrets.VERCEL_TOKEN }}
-
-      - name: Desplegar artefacto validado
+      - name: Esperar despliegue nativo de Vercel para este commit
         id: publicar
         env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          COMMIT_SHA: ${{ github.sha }}
+          PRODUCTION_URL: https://sigr-actualizado.vercel.app
         run: |
-          RAW_URL=$(npx --yes vercel@latest deploy --prebuilt --prod --yes --token ${{ secrets.VERCEL_TOKEN }} | tail -n 1)
-          CLEAN_URL=${RAW_URL#https://}
-          echo "url=https://${CLEAN_URL}" >> "$GITHUB_OUTPUT"
+          for attempt in {1..40}; do
+            DEPLOYMENTS=$(gh api "repos/${REPOSITORY}/deployments?sha=${COMMIT_SHA}&per_page=100")
+            DEPLOYMENT_ID=$(jq -r '[.[] | select(.environment | ascii_downcase == "production")][0].id // empty' <<< "$DEPLOYMENTS")
+            if [ -n "$DEPLOYMENT_ID" ]; then
+              STATUSES=$(gh api "repos/${REPOSITORY}/deployments/${DEPLOYMENT_ID}/statuses")
+              STATE=$(jq -r '.[0].state // "pending"' <<< "$STATUSES")
+              echo "Intento ${attempt}: despliegue ${DEPLOYMENT_ID}, estado ${STATE}"
+              if [ "$STATE" = "success" ]; then
+                echo "url=${PRODUCTION_URL}" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+              if [[ "$STATE" =~ ^(failure|error|inactive)$ ]]; then
+                echo "Vercel terminó con estado ${STATE}" >&2
+                exit 1
+              fi
+            else
+              echo "Intento ${attempt}: Vercel aún no registra el despliegue"
+            fi
+            sleep 15
+          done
+          echo "Tiempo de espera agotado para el despliegue de Vercel" >&2
+          exit 1
 
       - name: Verificar disponibilidad, autenticación y salud
         env:

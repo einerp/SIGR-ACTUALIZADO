@@ -173,3 +173,21 @@ BEGIN
       USING (bucket_id = 'productos-imagenes');
   END IF;
 END $$;
+
+
+-- 8. Seguridad: RLS para bloquear acceso anónimo directo.
+-- El backend usa service_role, que omite RLS; nunca exponer esa clave en el navegador.
+ALTER TABLE public.configuracion_restaurante ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.categorias ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.productos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.clientes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ventas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.venta_detalles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.movimientos_contables ENABLE ROW LEVEL SECURITY;
+
+GRANT USAGE ON SCHEMA public TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO service_role;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO service_role;
+
+-- Actualizar inmediatamente la caché de PostgREST después de crear el esquema.
+NOTIFY pgrst, 'reload schema';

@@ -1,88 +1,112 @@
 # SIGR — Sistema Integral de Gestión de Restaurantes
 
-**SIGR** es una aplicación web full-stack para restaurantes construida con **Node.js**, **Express**, **JavaScript**, **Bootstrap 5**, **Supabase (PostgreSQL + Storage)** y lista para desplegar en **Vercel**.
+Aplicación web full-stack para restaurantes construida con **Node.js**, **Express**, **JavaScript**, **Bootstrap 5**, **Supabase (PostgreSQL + Storage)** y **Vercel**. Incluye autenticación administrativa y un pipeline CI/CD con GitHub Actions.
 
-## Módulos Incluidos
+**Repositorio:** https://github.com/einerp/SIGR-ACTUALIZADO
 
-- **Dashboard**: KPIs diarios y mensuales, gráfica de ventas de los últimos 7 días, top productos, últimas facturas POS y alertas de stock bajo.
-- **Categorías**: CRUD completo con color distintivo, ícono, estado activo/inactivo y conteo de productos.
-- **Productos con Imágenes**: CRUD completo con SKU, precio, costo unitario, margen, stock y **carga de imagen por producto** (almacenada en **Supabase Storage** bucket `productos-imagenes`, con vista previa inmediata y soporte también para URL externa).
-- **Ventas y Facturación tipo POS**: Punto de venta visual con tarjetas de productos con foto, filtro por categorías, carrito interactivo, selección/creación rápida de cliente, tipo de servicio (Mesa / Para llevar / Domicilio), descuento, impuesto configurable, cálculo automático de cambio/vuelto, **ticket térmico POS 80mm imprimible**, descuento automático de inventario y **asiento automático en Contabilidad**.
-- **Historial de Facturas**: Búsqueda, filtros por fecha/estado, reimpresión de tirilla POS y anulación de facturas con reverso automático de stock y contabilidad.
-- **Clientes**: Directorio CRM con historial de compras y total gastado.
-- **Contabilidad**: Control de ingresos y egresos, integración automática con ventas POS, registro de gastos operativos (proveedores, nómina, arriendo, servicios, insumos), balance neto y utilidad bruta.
-- **Reportes de Ventas**: Filtros por rango de fechas, gráficas interactivas (ventas por día, por categoría y por método de pago), Top 10 productos más vendidos, **exportación a CSV (Excel)** e **impresión / PDF**.
-- **Configuración**: Personalización del nombre del restaurante, NIT/RUT, dirección, teléfono, impuesto por defecto, moneda y prefijo de factura POS.
+## Módulos incluidos
 
----
+- **Acceso seguro:** usuario y contraseña, hash bcrypt, sesión firmada en cookie HttpOnly, límite de intentos, cierre de sesión y cambio de credenciales desde Configuración.
+- **Dashboard:** indicadores diarios y mensuales, ventas de los últimos 7 días, productos destacados, facturas recientes y alertas de inventario.
+- **Categorías y productos:** CRUD, imágenes en Supabase Storage, SKU, costos, márgenes, stock y disponibilidad.
+- **Ventas POS:** carrito, clientes, tipos de servicio, descuentos, impuestos, cambio, ticket imprimible, inventario y asiento contable automáticos.
+- **Historial de facturas:** filtros, reimpresión y anulación con reverso de stock y contabilidad.
+- **Clientes, contabilidad y reportes:** CRM, ingresos/egresos, utilidad, gráficas, CSV e impresión/PDF.
+- **Configuración:** datos del restaurante y actualización de las credenciales de acceso.
 
-## Instalación Local
+## Instalación local
+
+Requisitos: Node.js 20 o superior y npm.
 
 ```bash
-npm install
+npm ci
 cp .env.example .env
 npm run dev
 ```
 
-Abre en tu navegador: `http://localhost:3000`
+Abre `http://localhost:3000`.
 
-> **Nota:** Si todavía no configuras tus credenciales de Supabase en `.env`, SIGR arrancará automáticamente en **Modo Demo Local** con datos de prueba para que puedas explorar y probar todo el sistema de inmediato.
+En el modo demo local, el primer acceso usa:
 
----
+- **Usuario:** `admin`
+- **Contraseña:** `Admin123*`
 
-## Configuración de Supabase
+Cambia estos valores en **Configuración → Seguridad de la cuenta**. El archivo `data/demo-auth.json` conserva el hash de la contraseña local y está excluido de Git.
 
-1. Crea un proyecto gratuito en [supabase.com](https://supabase.com).
-2. Ve a **SQL Editor** y ejecuta el contenido completo de [`supabase/schema.sql`](supabase/schema.sql).
-   - Esto crea las 7 tablas (`configuracion_restaurante`, `categorias`, `productos`, `clientes`, `ventas`, `venta_detalles`, `movimientos_contables`), los índices y el bucket público de Storage `productos-imagenes`.
-3. *(Opcional)* Ejecuta [`supabase/seed.sql`](supabase/seed.sql) para cargar categorías, platos y clientes iniciales.
-4. Ve a **Project Settings → API** y copia:
-   - `Project URL` → `SUPABASE_URL`
-   - `anon public` → `SUPABASE_ANON_KEY`
-   - `service_role` → `SUPABASE_SERVICE_ROLE_KEY`
-5. Pega esos valores en tu archivo `.env` local (o en las variables de entorno de Vercel).
+## Variables de entorno
 
----
+| Variable | Uso |
+| --- | --- |
+| `SESSION_SECRET` | Firma de sesiones; aleatorio y de mínimo 32 caracteres en producción. |
+| `ADMIN_USERNAME` | Usuario para crear el primer administrador, solo si la tabla está vacía. |
+| `ADMIN_PASSWORD` | Contraseña inicial obligatoria en producción si no existe ningún usuario. |
+| `SUPABASE_URL` | URL del proyecto Supabase. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Clave privada del backend; nunca se envía al navegador ni se sube a Git. |
+| `SUPABASE_ANON_KEY` | Alternativa de desarrollo; se recomienda `service_role` en el servidor. |
+| `SUPABASE_STORAGE_BUCKET` | Bucket de imágenes; valor `productos-imagenes`. |
+| `PORT` | Puerto local; valor predeterminado `3000`. |
+
+## Supabase
+
+1. Abre el proyecto en Supabase y entra a **SQL Editor**.
+2. Ejecuta `supabase/schema.sql`. Crea las tablas operativas, la tabla protegida `usuarios`, índices y el bucket `productos-imagenes`.
+3. Opcionalmente ejecuta `supabase/seed.sql` para datos de ejemplo.
+4. Configura las variables en `.env` o en Vercel. La tabla `usuarios` tiene RLS habilitado y solo el backend con `service_role` administra las credenciales.
+
+## Validaciones y pipeline
+
+```bash
+npm run lint     # Análisis estático con ESLint
+npm test         # Pruebas unitarias e integración con cobertura
+npm run build    # Artefacto reproducible en dist/
+npm run check    # Todas las validaciones anteriores
+npm audit        # Seguridad de dependencias
+```
+
+El workflow `.github/workflows/ci-cd.yml` ejecuta **build → lint → pruebas → seguridad → artefacto → confirmación de deploy → smoke test**. Un fallo de calidad impide continuar y un despliegue fallido hace fallar el pipeline.
+
+Vercel está conectado al repositorio mediante su integración nativa de GitHub y despliega `main` automáticamente. GitHub Actions espera el estado de éxito del despliegue asociado al mismo commit usando `GITHUB_TOKEN`; no requiere `VERCEL_TOKEN` ni IDs almacenados como secretos.
+
+Las variables `SUPABASE_*`, `SESSION_SECRET`, `ADMIN_USERNAME` y `ADMIN_PASSWORD` se configuran en el proyecto de Vercel. No uses secretos en el código.
+
+La documentación técnica, el diagrama, la simulación de fallos y la estrategia de escalamiento están en [`docs/PIPELINE.md`](docs/PIPELINE.md). Las evidencias están en `docs/evidencias/`.
 
 ## Despliegue en Vercel
 
-El proyecto ya incluye [`vercel.json`](vercel.json) y la función serverless [`api/index.js`](api/index.js).
+El archivo `vercel.json` dirige `/api/*` a la función `api/index.js`; Vercel sirve el frontend desde `public/`.
 
-1. Sube este proyecto a un repositorio en **GitHub**.
-2. En [vercel.com](https://vercel.com), haz clic en **Add New → Project** e importa el repositorio.
-3. En **Environment Variables**, agrega:
-   - `SUPABASE_URL`
-   - `SUPABASE_ANON_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-   - `SUPABASE_STORAGE_BUCKET` = `productos-imagenes`
-4. Haz clic en **Deploy**. Vercel servirá automáticamente el frontend en `public/` y la API Express en `/api/*`.
+```bash
+npx vercel link
+npx vercel --prod
+node scripts/smoke-test.js https://TU-DOMINIO.vercel.app
+```
 
----
+La prueba de humo verifica la página de acceso, el endpoint público `/api/health` y que `/api/dashboard` rechace solicitudes sin sesión.
 
-## Estructura del Proyecto
+## Estructura
 
 ```text
-├── api/
-│   └── index.js                 # Entrada serverless para Vercel
-├── public/
-│   ├── css/styles.css           # Estilos Bootstrap 5 + impresión POS 80mm
-│   ├── js/api.js                # Cliente HTTP para la API REST
-│   ├── js/app.js                # Lógica SPA, POS, gráficas y modales
-│   └── index.html               # Interfaz principal de SIGR
+├── .github/workflows/ci-cd.yml  # Pipeline CI/CD
+├── api/index.js                 # Entrada serverless
+├── docs/                        # Diseño, manual y evidencias
+├── public/                      # SPA, estilos y cliente HTTP
+├── scripts/                     # Build y smoke test
 ├── src/
-│   ├── config/supabase.js       # Cliente Supabase y validación de entorno
-│   ├── repositories/
-│   │   ├── dataStore.js         # Selector automático Supabase / Demo
-│   │   ├── supabaseAdapter.js   # Persistencia PostgreSQL en Supabase
-│   │   └── demoAdapter.js       # Persistencia local de demostración
-│   ├── routes/                  # Endpoints REST por módulo
-│   ├── services/storageService.js # Subida/borrado de imágenes en Supabase Storage
-│   └── app.js                   # Aplicación Express
-├── supabase/
-│   ├── schema.sql               # Esquema SQL + Bucket Storage
-│   └── seed.sql                 # Datos semilla opcionales
-├── server.js                    # Arranque local de Node.js
-├── vercel.json                  # Configuración de rutas para Vercel
-├── .env.example                 # Plantilla de variables de entorno
-└── package.json
+│   ├── repositories/            # Supabase, demo y usuarios
+│   ├── routes/                  # API REST y autenticación
+│   ├── services/                # Sesiones y almacenamiento
+│   └── app.js                   # Express y middleware de seguridad
+├── supabase/                    # Esquema y datos semilla
+├── tests/                       # Pruebas automatizadas
+├── .env.example                 # Plantilla sin secretos
+├── CHANGELOG.md
+└── LICENSE
 ```
+
+## Buenas prácticas de colaboración
+
+- Crea ramas temáticas desde `main` y abre Pull Requests.
+- No confirmes `.env`, datos locales, tokens ni contraseñas.
+- Ejecuta `npm run check` antes de cada Pull Request.
+- Usa commits descriptivos y revisa los resultados de GitHub Actions.
+- Los despliegues a producción solo se originan en `main` después de superar calidad y pruebas.

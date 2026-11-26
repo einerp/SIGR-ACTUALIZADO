@@ -1174,6 +1174,7 @@ const SIGR = (() => {
   }
 
   async function showApplication(user) {
+    API.setUnauthorizedHandler(() => showLogin('Tu sesión venció. Ingresa nuevamente.'));
     state.user = user;
     document.getElementById('currentUserName').textContent = user.usuario;
     document.getElementById('cfgNuevoUsuario').value = user.usuario;
@@ -1505,12 +1506,12 @@ const SIGR = (() => {
   async function init() {
     bindEvents();
     startClock();
-    API.setUnauthorizedHandler(() => showLogin('Tu sesión venció. Ingresa nuevamente.'));
     try {
       const session = await API.me();
       await showApplication(session.data);
     } catch (err) {
-      if (err.status !== 401) showLogin('No se pudo conectar con el servidor. Inténtalo de nuevo.');
+      if (err.status === 401) showLogin();
+      else showLogin('No se pudo conectar con el servidor. Inténtalo de nuevo.');
     }
   }
 
