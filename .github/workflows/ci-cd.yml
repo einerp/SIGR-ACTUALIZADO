@@ -1,0 +1,97 @@
+name: SIGR CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sigr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  calidad:
+    name: Build, test, calidad y seguridad
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependencias bloqueadas
+        run: npm ci
+
+      - name: Análisis estático con ESLint
+        run: npm run lint
+
+      - name: Escanear vulnerabilidades de dependencias
+        run: npm audit --audit-level=high
+
+      - name: Ejecutar pruebas unitarias e integración
+        run: npm test
+
+      - name: Construir artefacto reproducible
+        run: npm run build
+
+      - name: Publicar artefacto de build
+        uses: actions/upload-artifact@v4
+        with:
+          name: sigr-build-${{ github.sha }}
+          path: dist
+          retention-days: 7
+
+  despliegue:
+    name: Deploy a producción y smoke test
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: calidad
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: ${{ steps.publicar.outputs.url }}
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Descargar configuración de Vercel
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: npx --yes vercel@latest pull --yes --environment=production --token ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Construir funciones y frontend en Vercel
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: npx --yes vercel@latest build --prod --token ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Desplegar artefacto validado
+        id: publicar
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          RAW_URL=$(npx --yes vercel@latest deploy --prebuilt --prod --yes --token ${{ secrets.VERCEL_TOKEN }} | tail -n 1)
+          CLEAN_URL=${RAW_URL#https://}
+          echo "url=https://${CLEAN_URL}" >> "$GITHUB_OUTPUT"
+
+      - name: Verificar disponibilidad, autenticación y salud
+        env:
+          SMOKE_URL: ${{ steps.publicar.outputs.url }}
+        run: node scripts/smoke-test.js "$SMOKE_URL"

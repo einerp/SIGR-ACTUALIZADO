@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SIGR — Sistema Integral de Gestión de Restaurantes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <link href="/css/styles.css" rel="stylesheet" />
+</head>
+<body>
+  <main class="login-screen" id="loginScreen">
+    <section class="login-panel" aria-labelledby="loginTitle">
+      <div class="login-brand-mark"><i class="bi bi-fire"></i></div>
+      <p class="login-eyebrow">Sistema Integral de Gestión de Restaurantes</p>
+      <h1 id="loginTitle">Bienvenido a SIGR</h1>
+      <p class="login-copy">Ingresa con tu cuenta de administrador para gestionar la operación.</p>
+      <form id="loginForm" class="login-form">
+        <div class="alert alert-danger d-none" id="loginError" role="alert"></div>
+        <div>
+          <label for="loginUsuario" class="form-label">Usuario</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-person"></i></span>
+            <input type="text" class="form-control" id="loginUsuario" autocomplete="username" maxlength="30" required autofocus />
+          </div>
+        </div>
+        <div>
+          <label for="loginPassword" class="form-label">Contraseña</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-shield-lock"></i></span>
+            <input type="password" class="form-control" id="loginPassword" autocomplete="current-password" maxlength="72" required />
+          </div>
+        </div>
+        <button type="submit" class="btn btn-sigr w-100 py-2" id="btnLogin">
+          <i class="bi bi-box-arrow-in-right me-1"></i>Iniciar sesión
+        </button>
+      </form>
+      <p class="login-help">En el primer acceso local usa <strong>admin</strong> y <strong>Admin123*</strong>. Cambia estas credenciales desde Configuración.</p>
+    </section>
+  </main>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <div class="sigr-wrapper d-none" id="appShell">
+    <!-- SIDEBAR -->
+    <aside class="sigr-sidebar" id="sigrSidebar">
+      <div class="sigr-brand">
+        <div class="sigr-brand-icon"><i class="bi bi-fire"></i></div>
+        <div>
+          <div class="sigr-brand-title">SIGR</div>
+          <div class="sigr-brand-sub">Gestión de Restaurantes</div>
+        </div>
+      </div>
+
+      <nav class="sigr-nav">
+        <div class="sigr-nav-section">Operación</div>
+        <a class="sigr-nav-link active" data-view="dashboard">
+          <i class="bi bi-speedometer2"></i><span>Dashboard</span>
+        </a>
+        <a class="sigr-nav-link" data-view="pos">
+          <i class="bi bi-receipt-cutoff"></i><span>Ventas POS</span>
+        </a>
+        <a class="sigr-nav-link" data-view="ventas">
+          <i class="bi bi-clock-history"></i><span>Historial Facturas</span>
+        </a>
+
+        <div class="sigr-nav-section">Catálogo &amp; CRM</div>
+        <a class="sigr-nav-link" data-view="categorias">
+          <i class="bi bi-tags"></i><span>Categorías</span>
+        </a>
+        <a class="sigr-nav-link" data-view="productos">
+          <i class="bi bi-box-seam"></i><span>Productos</span>
+        </a>
+        <a class="sigr-nav-link" data-view="clientes">
+          <i class="bi bi-people"></i><span>Clientes</span>
+        </a>
+
+        <div class="sigr-nav-section">Finanzas &amp; Análisis</div>
+        <a class="sigr-nav-link" data-view="contabilidad">
+          <i class="bi bi-journal-text"></i><span>Contabilidad</span>
+        </a>
+        <a class="sigr-nav-link" data-view="reportes">
+          <i class="bi bi-bar-chart-line"></i><span>Reportes de Ventas</span>
+        </a>
+
+        <div class="sigr-nav-section">Sistema</div>
+        <a class="sigr-nav-link" data-view="configuracion">
+          <i class="bi bi-gear"></i><span>Configuración</span>
+        </a>
+      </nav>
+
+      <div class="sigr-sidebar-footer">
+        <div class="d-flex align-items-center justify-content-between">
+          <span>SIGR v1.0</span>
+          <span class="badge bg-secondary-subtle text-light bg-opacity-25">Node + Supabase</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="sigr-main">
+      <!-- TOPBAR -->
+      <header class="sigr-topbar">
+        <div class="d-flex align-items-center gap-3">
+          <button class="btn btn-outline-secondary btn-sm d-lg-none" id="btnToggleSidebar" aria-label="Menú">
+            <i class="bi bi-list fs-5"></i>
+          </button>
+          <div>
+            <h5 class="mb-0 fw-bold" id="topbarTitle">Dashboard</h5>
+            <small class="text-muted" id="topbarClock"></small>
+          </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <span id="dbStatusBadge" class="badge rounded-pill text-bg-secondary px-3 py-2">
+            <i class="bi bi-database me-1"></i>Verificando...
+          </span>
+          <button class="btn btn-sigr btn-sm px-3" id="btnQuickPOS">
+            <i class="bi bi-plus-circle me-1"></i>Nueva Venta POS
+          </button>
+          <span class="badge rounded-pill text-bg-light border px-3 py-2" id="currentUserBadge">
+            <i class="bi bi-person-circle me-1"></i><span id="currentUserName">Administrador</span>
+          </span>
+          <button class="btn btn-outline-secondary btn-sm" id="btnLogout" title="Cerrar sesión" aria-label="Cerrar sesión">
+            <i class="bi bi-box-arrow-right"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- CONTENT -->
+      <main class="sigr-content">
+        <!-- ================= DASHBOARD ================= -->
+        <section id="view-dashboard" class="sigr-view active">
+          <div class="row g-3 mb-4">
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="kpi-card">
+                <div>
+                  <div class="kpi-label">Ventas Hoy</div>
+                  <div class="kpi-value" id="dashVentasHoy">$0</div>
+                  <div class="kpi-sub" id="dashFacturasHoy">0 facturas hoy</div>
+                </div>
+                <div class="kpi-icon bg-warning-subtle text-warning"><i class="bi bi-cash-coin"></i></div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="kpi-card">
+                <div>
+                  <div class="kpi-label">Ventas del Mes</div>
+                  <div class="kpi-value" id="dashVentasMes">$0</div>
+                  <div class="kpi-sub" id="dashTicketMes">Ticket prom: $0</div>
+                </div>
+                <div class="kpi-icon bg-primary-subtle text-primary"><i class="bi bi-graph-up-arrow"></i></div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="kpi-card">
+                <div>
+                  <div class="kpi-label">Balance Neto Mes</div>
+                  <div class="kpi-value" id="dashBalanceMes">$0</div>
+                  <div class="kpi-sub" id="dashEgresosMes">Egresos: $0</div>
+                </div>
+                <div class="kpi-icon bg-success-subtle text-success"><i class="bi bi-wallet2"></i></div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="kpi-card">
+                <div>
+                  <div class="kpi-label">Catálogo &amp; Clientes</div>
+                  <div class="kpi-value" id="dashProductosTotal">0 prod.</div>
+                  <div class="kpi-sub" id="dashClientesTotal">0 clientes • 0 stock bajo</div>
+                </div>
+                <div class="kpi-icon bg-danger-subtle text-danger"><i class="bi bi-box-seam"></i></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-12 col-lg-8">
+              <div class="sigr-card p-3 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h6 class="fw-bold mb-0"><i class="bi bi-activity text-warning me-2"></i>Ventas Últimos 7 Días</h6>
+                  <button class="btn btn-sm btn-outline-secondary" onclick="SIGR.navigate('reportes')">Ver reportes</button>
+                </div>
+                <div style="height: 270px;"><canvas id="dashChart7Days"></canvas></div>
+              </div>
+            </div>
+            <div class="col-12 col-lg-4">
+              <div class="sigr-card p-3 h-100">
+                <h6 class="fw-bold mb-3"><i class="bi bi-trophy text-warning me-2"></i>Top Productos del Mes</h6>
+                <div id="dashTopProductos" class="d-flex flex-column gap-2"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-12 col-lg-8">
+              <div class="sigr-card p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h6 class="fw-bold mb-0"><i class="bi bi-receipt text-primary me-2"></i>Últimas Facturas POS</h6>
+                  <button class="btn btn-sm btn-outline-secondary" onclick="SIGR.navigate('ventas')">Ver todas</button>
+                </div>
+                <div class="table-responsive">
+                  <table class="table table-hover align-middle mb-0 small">
+                    <thead class="table-light">
+                      <tr>
+                        <th>Factura</th>
+                        <th>Cliente</th>
+                        <th>Servicio</th>
+                        <th>Pago</th>
+                        <th class="text-end">Total</th>
+                        <th class="text-end">Ticket</th>
+                      </tr>
+                    </thead>
+                    <tbody id="dashUltimasVentas"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-lg-4">
+              <div class="sigr-card p-3 h-100">
+                <h6 class="fw-bold mb-3"><i class="bi bi-exclamation-triangle text-danger me-2"></i>Alertas de Stock Bajo (≤ 5)</h6>
+                <div id="dashAlertasStock" class="d-flex flex-column gap-2"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= PUNTO DE VENTA (POS) ================= -->
+        <section id="view-pos" class="sigr-view">
+          <div class="row g-3">
+            <!-- Catálogo POS -->
+            <div class="col-12 col-lg-7 col-xl-8">
+              <div class="sigr-card p-3 mb-3">
+                <div class="row g-2 align-items-center mb-2">
+                  <div class="col-12 col-md-7">
+                    <div class="input-group">
+                      <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                      <input type="text" class="form-control" id="posSearchInput" placeholder="Buscar plato, bebida o código SKU..." />
+                    </div>
+                  </div>
+                  <div class="col-12 col-md-5 text-md-end">
+                    <span class="badge text-bg-light border px-3 py-2" id="posCountLabel">0 productos disponibles</span>
+                  </div>
+                </div>
+                <div class="pos-cat-pills" id="posCategoryPills"></div>
+              </div>
+
+              <div class="row g-3" id="posProductGrid"></div>
+            </div>
+
+            <!-- Carrito / Facturación POS -->
+            <div class="col-12 col-lg-5 col-xl-4">
+              <div class="sigr-card p-3 pos-cart-panel">
+                <div class="d-flex justify-content-between align-items-center pb-2 border-bottom mb-2">
+                  <h6 class="fw-bold mb-0"><i class="bi bi-cart3 text-warning me-2"></i>Orden Actual POS</h6>
+                  <button class="btn btn-sm btn-outline-danger" id="btnClearCart" title="Vaciar orden">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+
+                <!-- Cliente y Servicio -->
+                <div class="row g-2 mb-2">
+                  <div class="col-9">
+                    <label class="form-label small fw-semibold mb-1">Cliente</label>
+                    <select class="form-select form-select-sm" id="posClienteSelect"></select>
+                  </div>
+                  <div class="col-3 d-flex align-items-end">
+                    <button class="btn btn-outline-primary btn-sm w-100" id="btnPosQuickClient" title="Nuevo Cliente">
+                      <i class="bi bi-person-plus"></i>
+                    </button>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label small fw-semibold mb-1">Servicio</label>
+                    <select class="form-select form-select-sm" id="posTipoServicio">
+                      <option value="mesa">En Mesa</option>
+                      <option value="llevar">Para Llevar</option>
+                      <option value="domicilio">Domicilio</option>
+                    </select>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label small fw-semibold mb-1">Mesa / Ref.</label>
+                    <input type="text" class="form-control form-control-sm" id="posMesaInput" placeholder="Ej. Mesa 5" />
+                  </div>
+                </div>
+
+                <!-- Ítems del carrito -->
+                <div class="pos-cart-items my-2 flex-grow-1" id="posCartItems">
+                  <div class="text-center text-muted py-4 small">
+                    <i class="bi bi-basket2 fs-2 d-block mb-1 opacity-50"></i>
+                    Selecciona productos para iniciar la factura
+                  </div>
+                </div>
+
+                <!-- Totales y Pago -->
+                <div class="border-top pt-2 mt-auto">
+                  <div class="row g-2 mb-2">
+                    <div class="col-6">
+                      <label class="form-label small mb-0 text-muted">Descuento ($)</label>
+                      <input type="number" min="0" step="100" value="0" class="form-control form-control-sm" id="posDescuentoInput" />
+                    </div>
+                    <div class="col-6">
+                      <label class="form-label small mb-0 text-muted">Impuesto (%)</label>
+                      <input type="number" min="0" max="50" step="0.5" value="8" class="form-control form-control-sm" id="posImpuestoInput" />
+                    </div>
+                  </div>
+
+                  <div class="small mb-2">
+                    <div class="d-flex justify-content-between">
+                      <span class="text-muted">Subtotal:</span>
+                      <span class="fw-semibold" id="posSubtotalLabel">$0</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                      <span class="text-muted">Impuesto:</span>
+                      <span class="fw-semibold" id="posImpuestoLabel">$0</span>
+                    </div>
+                    <div class="d-flex justify-content-between fs-5 fw-bold mt-1 pt-1 border-top">
+                      <span>TOTAL:</span>
+                      <span class="text-success" id="posTotalLabel">$0</span>
+                    </div>
+                  </div>
+
+                  <div class="row g-2 mb-2">
+                    <div class="col-6">
+                      <label class="form-label small mb-0 text-muted">Método de Pago</label>
+                      <select class="form-select form-select-sm" id="posMetodoPago">
+                        <option value="efectivo">Efectivo</option>
+                        <option value="tarjeta">Tarjeta</option>
+                        <option value="transferencia">Transferencia / QR</option>
+                        <option value="mixto">Mixto</option>
+                      </select>
+                    </div>
+                    <div class="col-6" id="posEfectivoWrap">
+                      <label class="form-label small mb-0 text-muted">Recibido ($)</label>
+                      <input type="number" min="0" step="500" class="form-control form-control-sm" id="posRecibidoInput" placeholder="Monto" />
+                    </div>
+                  </div>
+
+                  <div class="d-flex justify-content-between small mb-2 px-2 py-1 rounded bg-light" id="posCambioRow">
+                    <span class="fw-semibold text-muted">Cambio / Vuelto:</span>
+                    <span class="fw-bold text-primary" id="posCambioLabel">$0</span>
+                  </div>
+
+                  <input type="text" class="form-control form-control-sm mb-2" id="posNotasInput" placeholder="Notas del pedido (ej. sin cebolla, término medio)..." />
+
+                  <button class="btn btn-sigr w-100 py-2" id="btnConfirmSale">
+                    <i class="bi bi-printer me-1"></i>Facturar y Generar Ticket POS
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= HISTORIAL DE VENTAS ================= -->
+        <section id="view-ventas" class="sigr-view">
+          <div class="sigr-card p-3 mb-3">
+            <div class="row g-2 align-items-end">
+              <div class="col-6 col-md-2">
+                <label class="form-label small fw-semibold mb-1">Desde</label>
+                <input type="date" class="form-control form-control-sm" id="ventasFrom" />
+              </div>
+              <div class="col-6 col-md-2">
+                <label class="form-label small fw-semibold mb-1">Hasta</label>
+                <input type="date" class="form-control form-control-sm" id="ventasTo" />
+              </div>
+              <div class="col-6 col-md-2">
+                <label class="form-label small fw-semibold mb-1">Estado</label>
+                <select class="form-select form-select-sm" id="ventasEstado">
+                  <option value="">Todos</option>
+                  <option value="pagada">Pagada</option>
+                  <option value="anulada">Anulada</option>
+                </select>
+              </div>
+              <div class="col-6 col-md-3">
+                <label class="form-label small fw-semibold mb-1">Buscar</label>
+                <input type="text" class="form-control form-control-sm" id="ventasSearch" placeholder="Factura, cliente, mesa..." />
+              </div>
+              <div class="col-12 col-md-3 d-flex gap-2">
+                <button class="btn btn-sigr btn-sm flex-grow-1" id="btnFilterVentas">
+                  <i class="bi bi-funnel me-1"></i>Filtrar
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" id="btnResetVentas">Limpiar</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="sigr-card p-3">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Factura</th>
+                    <th>Fecha</th>
+                    <th>Cliente</th>
+                    <th>Servicio</th>
+                    <th>Método</th>
+                    <th>Estado</th>
+                    <th class="text-end">Total</th>
+                    <th class="text-end">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="ventasTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= CATEGORÍAS ================= -->
+        <section id="view-categorias" class="sigr-view">
+          <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div class="input-group" style="max-width: 340px;">
+              <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+              <input type="text" class="form-control" id="catSearchInput" placeholder="Buscar categoría..." />
+            </div>
+            <button class="btn btn-sigr" id="btnNewCategoria">
+              <i class="bi bi-plus-lg me-1"></i>Nueva Categoría
+            </button>
+          </div>
+          <div class="row g-3" id="categoriasGrid"></div>
+        </section>
+
+        <!-- ================= PRODUCTOS ================= -->
+        <section id="view-productos" class="sigr-view">
+          <div class="sigr-card p-3 mb-3">
+            <div class="row g-2 align-items-center">
+              <div class="col-12 col-md-5">
+                <div class="input-group">
+                  <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                  <input type="text" class="form-control" id="prodSearchInput" placeholder="Buscar producto o código SKU..." />
+                </div>
+              </div>
+              <div class="col-12 col-md-4">
+                <select class="form-select" id="prodFilterCat"></select>
+              </div>
+              <div class="col-12 col-md-3 text-md-end">
+                <button class="btn btn-sigr w-100" id="btnNewProducto">
+                  <i class="bi bi-plus-lg me-1"></i>Nuevo Producto
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="sigr-card p-3">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Producto</th>
+                    <th>Categoría</th>
+                    <th class="text-end">Precio Venta</th>
+                    <th class="text-end">Costo</th>
+                    <th class="text-center">Stock</th>
+                    <th class="text-center">Estado</th>
+                    <th class="text-end">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="productosTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= CLIENTES ================= -->
+        <section id="view-clientes" class="sigr-view">
+          <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div class="input-group" style="max-width: 360px;">
+              <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+              <input type="text" class="form-control" id="cliSearchInput" placeholder="Buscar por nombre, documento o teléfono..." />
+            </div>
+            <button class="btn btn-sigr" id="btnNewCliente">
+              <i class="bi bi-person-plus me-1"></i>Nuevo Cliente
+            </button>
+          </div>
+
+          <div class="sigr-card p-3">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Cliente</th>
+                    <th>Documento</th>
+                    <th>Contacto</th>
+                    <th>Dirección</th>
+                    <th class="text-center">Compras</th>
+                    <th class="text-end">Total Gastado</th>
+                    <th class="text-end">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="clientesTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= CONTABILIDAD ================= -->
+        <section id="view-contabilidad" class="sigr-view">
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="kpi-card">
+                <div>
+                  <div class="kpi-label">Total Ingresos</div>
+                  <div class="kpi-value text-success" id="contIngresos">$0</div>
+                  <div class="kpi-sub">Ventas POS + otros ingresos</div>
+                </div>
+                <div class="kpi-icon bg-success-subtle text-success"><i class="bi bi-arrow-down-left-circle"></i></div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="kpi-card">
+                <div>
+                  <div class="kpi-label">Total Egresos</div>
+                  <div class="kpi-value text-danger" id="contEgresos">$0</div>
+                  <div class="kpi-sub">Gastos, compras, nómina</div>
+                </div>
+                <div class="kpi-icon bg-danger-subtle text-danger"><i class="bi bi-arrow-up-right-circle"></i></div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="kpi-card">
+                <div>
+                  <div class="kpi-label">Balance Neto</div>
+                  <div class="kpi-value" id="contBalance">$0</div>
+                  <div class="kpi-sub">Flujo de caja del período</div>
+                </div>
+                <div class="kpi-icon bg-primary-subtle text-primary"><i class="bi bi-bank"></i></div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="kpi-card">
+                <div>
+                  <div class="kpi-label">Utilidad Bruta Ventas</div>
+                  <div class="kpi-value text-warning-emphasis" id="contUtilidadBruta">$0</div>
+                  <div class="kpi-sub" id="contCostoVentas">Costo insumos: $0</div>
+                </div>
+                <div class="kpi-icon bg-warning-subtle text-warning"><i class="bi bi-pie-chart"></i></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sigr-card p-3 mb-3">
+            <div class="row g-2 align-items-end">
+              <div class="col-6 col-md-2">
+                <label class="form-label small fw-semibold mb-1">Desde</label>
+                <input type="date" class="form-control form-control-sm" id="contFrom" />
+              </div>
+              <div class="col-6 col-md-2">
+                <label class="form-label small fw-semibold mb-1">Hasta</label>
+                <input type="date" class="form-control form-control-sm" id="contTo" />
+              </div>
+              <div class="col-6 col-md-2">
+                <label class="form-label small fw-semibold mb-1">Tipo</label>
+                <select class="form-select form-select-sm" id="contTipo">
+                  <option value="">Todos</option>
+                  <option value="ingreso">Ingresos</option>
+                  <option value="egreso">Egresos</option>
+                </select>
+              </div>
+              <div class="col-6 col-md-3">
+                <label class="form-label small fw-semibold mb-1">Buscar</label>
+                <input type="text" class="form-control form-control-sm" id="contSearch" placeholder="Concepto, referencia..." />
+              </div>
+              <div class="col-12 col-md-3 d-flex gap-2">
+                <button class="btn btn-outline-primary btn-sm flex-grow-1" id="btnFilterCont">Filtrar</button>
+                <button class="btn btn-sigr btn-sm flex-grow-1" id="btnNewMovimiento">
+                  <i class="bi bi-plus-lg me-1"></i>Registrar
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="sigr-card p-3">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Tipo</th>
+                    <th>Categoría</th>
+                    <th>Concepto</th>
+                    <th>Referencia</th>
+                    <th>Método</th>
+                    <th class="text-end">Monto</th>
+                    <th class="text-end">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="contTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= REPORTES DE VENTAS ================= -->
+        <section id="view-reportes" class="sigr-view">
+          <div class="sigr-card p-3 mb-3 no-print">
+            <div class="row g-2 align-items-end">
+              <div class="col-6 col-md-2">
+                <label class="form-label small fw-semibold mb-1">Desde</label>
+                <input type="date" class="form-control form-control-sm" id="repFrom" />
+              </div>
+              <div class="col-6 col-md-2">
+                <label class="form-label small fw-semibold mb-1">Hasta</label>
+                <input type="date" class="form-control form-control-sm" id="repTo" />
+              </div>
+              <div class="col-12 col-md-4 d-flex gap-1 flex-wrap">
+                <button class="btn btn-outline-secondary btn-sm rep-preset" data-preset="today">Hoy</button>
+                <button class="btn btn-outline-secondary btn-sm rep-preset" data-preset="7d">7 días</button>
+                <button class="btn btn-outline-secondary btn-sm rep-preset" data-preset="month">Este mes</button>
+                <button class="btn btn-outline-secondary btn-sm rep-preset" data-preset="all">Todo</button>
+                <button class="btn btn-sigr btn-sm" id="btnGenerateReport">
+                  <i class="bi bi-arrow-repeat me-1"></i>Actualizar
+                </button>
+              </div>
+              <div class="col-12 col-md-4 text-md-end d-flex gap-2 justify-content-md-end">
+                <button class="btn btn-success btn-sm" id="btnExportCsv">
+                  <i class="bi bi-file-earmark-spreadsheet me-1"></i>Exportar CSV
+                </button>
+                <button class="btn btn-outline-dark btn-sm" id="btnPrintReport">
+                  <i class="bi bi-printer me-1"></i>Imprimir / PDF
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-6 col-lg-3">
+              <div class="kpi-card">
+                <div>
+                  <div class="kpi-label">Total Vendido</div>
+                  <div class="kpi-value" id="repTotalVentas">$0</div>
+                  <div class="kpi-sub" id="repTotalFacturas">0 facturas</div>
+                </div>
+                <div class="kpi-icon bg-primary-subtle text-primary"><i class="bi bi-currency-dollar"></i></div>
+              </div>
+            </div>
+            <div class="col-6 col-lg-3">
+              <div class="kpi-card">
+                <div>
+                  <div class="kpi-label">Ticket Promedio</div>
+                  <div class="kpi-value" id="repTicketProm">$0</div>
+                  <div class="kpi-sub" id="repUnidades">0 unidades vendidas</div>
+                </div>
+                <div class="kpi-icon bg-info-subtle text-info"><i class="bi bi-receipt"></i></div>
+              </div>
+            </div>
+            <div class="col-6 col-lg-3">
+              <div class="kpi-card">
+                <div>
+                  <div class="kpi-label">Utilidad Bruta</div>
+                  <div class="kpi-value text-success" id="repUtilidad">$0</div>
+                  <div class="kpi-sub" id="repMargen">Margen: 0%</div>
+                </div>
+                <div class="kpi-icon bg-success-subtle text-success"><i class="bi bi-graph-up"></i></div>
+              </div>
+            </div>
+            <div class="col-6 col-lg-3">
+              <div class="kpi-card">
+                <div>
+                  <div class="kpi-label">Impuestos Recaudados</div>
+                  <div class="kpi-value" id="repImpuestos">$0</div>
+                  <div class="kpi-sub" id="repDescuentos">Descuentos: $0</div>
+                </div>
+                <div class="kpi-icon bg-warning-subtle text-warning"><i class="bi bi-percent"></i></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-12 col-lg-8">
+              <div class="sigr-card p-3 h-100">
+                <h6 class="fw-bold mb-3">Evolución de Ventas por Día</h6>
+                <div style="height: 280px;"><canvas id="repChartDaily"></canvas></div>
+              </div>
+            </div>
+            <div class="col-12 col-lg-4">
+              <div class="sigr-card p-3 h-100">
+                <h6 class="fw-bold mb-3">Ventas por Categoría</h6>
+                <div style="height: 280px;"><canvas id="repChartCategories"></canvas></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-12 col-lg-5">
+              <div class="sigr-card p-3 h-100">
+                <h6 class="fw-bold mb-3">Ventas por Método de Pago</h6>
+                <div style="height: 250px;"><canvas id="repChartMethods"></canvas></div>
+              </div>
+            </div>
+            <div class="col-12 col-lg-7">
+              <div class="sigr-card p-3 h-100">
+                <h6 class="fw-bold mb-3">Top 10 Productos Más Vendidos</h6>
+                <div class="table-responsive">
+                  <table class="table table-sm table-hover align-middle mb-0">
+                    <thead class="table-light">
+                      <tr>
+                        <th>Producto</th>
+                        <th class="text-center">Unidades</th>
+                        <th class="text-end">Ingresos</th>
+                        <th class="text-end">Utilidad</th>
+                      </tr>
+                    </thead>
+                    <tbody id="repTopProductsBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= CONFIGURACIÓN ================= -->
+        <section id="view-configuracion" class="sigr-view">
+          <div class="row g-3">
+            <div class="col-12 col-lg-7">
+              <div class="sigr-card p-4">
+                <h6 class="fw-bold mb-3"><i class="bi bi-shop text-warning me-2"></i>Datos del Restaurante y Facturación POS</h6>
+                <form id="configForm" class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-semibold">Nombre del Restaurante</label>
+                    <input type="text" class="form-control" name="nombre" id="cfgNombre" required />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-semibold">NIT / RUT / Identificación Fiscal</label>
+                    <input type="text" class="form-control" name="nit" id="cfgNit" />
+                  </div>
+                  <div class="col-md-8">
+                    <label class="form-label small fw-semibold">Dirección</label>
+                    <input type="text" class="form-control" name="direccion" id="cfgDireccion" />
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-semibold">Teléfono</label>
+                    <input type="text" class="form-control" name="telefono" id="cfgTelefono" />
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-semibold">Impuesto por Defecto (%)</label>
+                    <input type="number" step="0.5" min="0" max="50" class="form-control" name="impuesto_porcentaje" id="cfgImpuesto" />
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-semibold">Moneda</label>
+                    <select class="form-select" name="moneda" id="cfgMoneda">
+                      <option value="COP">COP ($)</option>
+                      <option value="USD">USD ($)</option>
+                      <option value="MXN">MXN ($)</option>
+                      <option value="EUR">EUR (€)</option>
+                      <option value="PEN">PEN (S/)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-semibold">Prefijo Factura POS</label>
+                    <input type="text" maxlength="10" class="form-control" name="prefijo_factura" id="cfgPrefijo" />
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label small fw-semibold">Mensaje pie de factura POS</label>
+                    <input type="text" class="form-control" name="mensaje_factura" id="cfgMensaje" />
+                  </div>
+                  <div class="col-12">
+                    <button type="submit" class="btn btn-sigr px-4">
+                      <i class="bi bi-check2-circle me-1"></i>Guardar Configuración
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+            <div class="col-12 col-lg-5">
+              <div class="sigr-card p-4 mb-3">
+                <h6 class="fw-bold mb-2"><i class="bi bi-shield-lock text-warning me-2"></i>Seguridad de la cuenta</h6>
+                <p class="small text-muted">Cambia tu usuario o contraseña. Para confirmar cualquier cambio debes ingresar la contraseña actual.</p>
+                <form id="credentialsForm" class="row g-3">
+                  <div class="col-12">
+                    <label class="form-label small fw-semibold" for="cfgNuevoUsuario">Nombre de usuario</label>
+                    <input type="text" class="form-control" id="cfgNuevoUsuario" minlength="4" maxlength="30" pattern="[a-zA-Z0-9._-]+" autocomplete="username" required />
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label small fw-semibold" for="cfgPasswordActual">Contraseña actual *</label>
+                    <input type="password" class="form-control" id="cfgPasswordActual" autocomplete="current-password" maxlength="72" required />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-semibold" for="cfgNuevaPassword">Nueva contraseña</label>
+                    <input type="password" class="form-control" id="cfgNuevaPassword" autocomplete="new-password" minlength="10" maxlength="72" placeholder="Mínimo 10 caracteres" />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-semibold" for="cfgConfirmarPassword">Confirmar contraseña</label>
+                    <input type="password" class="form-control" id="cfgConfirmarPassword" autocomplete="new-password" minlength="10" maxlength="72" />
+                  </div>
+                  <div class="col-12">
+                    <small class="text-muted d-block mb-3">Si solo cambias el usuario, deja los campos de nueva contraseña vacíos.</small>
+                    <button type="submit" class="btn btn-outline-primary w-100" id="btnSaveCredentials">
+                      <i class="bi bi-key me-1"></i>Actualizar credenciales
+                    </button>
+                  </div>
+                </form>
+              </div>
+              <div class="sigr-card p-4">
+                <h6 class="fw-bold mb-3"><i class="bi bi-cloud-check text-primary me-2"></i>Despliegue Supabase &amp; Vercel</h6>
+                <p class="small text-muted">
+                  SIGR está listo para conectarse a tu base de datos PostgreSQL y almacenamiento de imágenes en <strong>Supabase</strong>, y desplegarse en <strong>Vercel</strong>.
+                </p>
+                <ol class="small text-muted ps-3 mb-0">
+                  <li class="mb-2">Crea un proyecto en <strong>Supabase</strong> y ejecuta <code>supabase/schema.sql</code> en el SQL Editor.</li>
+                  <li class="mb-2">Opcionalmente ejecuta <code>supabase/seed.sql</code> para cargar platos y clientes de prueba.</li>
+                  <li class="mb-2">Configura las variables <code>SUPABASE_URL</code>, <code>SUPABASE_SERVICE_ROLE_KEY</code> y <code>SUPABASE_STORAGE_BUCKET</code> en <code>.env</code> o en <strong>Vercel Project Settings</strong>.</li>
+                  <li>Sube el repositorio a GitHub e impórtalo en Vercel (ya incluye <code>vercel.json</code> y <code>api/index.js</code>).</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- ================= MODALES ================= -->
+
+  <!-- Modal Categoría -->
+  <div class="modal fade" id="modalCategoria" tabindex="-1">
+    <div class="modal-dialog">
+      <form class="modal-content" id="formCategoria">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold" id="modalCategoriaTitle">Nueva Categoría</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body row g-3">
+          <input type="hidden" id="catId" />
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Nombre *</label>
+            <input type="text" class="form-control" id="catNombre" required placeholder="Ej. Platos Fuertes" />
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Descripción</label>
+            <textarea class="form-control" id="catDescripcion" rows="2" placeholder="Descripción corta..."></textarea>
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-semibold">Color distintivo</label>
+            <input type="color" class="form-control form-control-color w-100" id="catColor" value="#ea580c" />
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-semibold">Ícono</label>
+            <select class="form-select" id="catIcono">
+              <option value="bi-tag">Etiqueta</option>
+              <option value="bi-fire">Parrilla / Fuerte</option>
+              <option value="bi-egg-fried">Entrada</option>
+              <option value="bi-cup-straw">Bebida</option>
+              <option value="bi-cake2">Postre</option>
+              <option value="bi-shop">Hamburguesa / Fast</option>
+              <option value="bi-cup-hot">Cafetería</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="catActivo" checked />
+              <label class="form-check-label small" for="catActivo">Categoría activa en el POS</label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-sigr">Guardar Categoría</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Producto (con carga de imagen) -->
+  <div class="modal fade" id="modalProducto" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <form class="modal-content" id="formProducto" enctype="multipart/form-data">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold" id="modalProductoTitle">Nuevo Producto</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="prodId" />
+          <div class="row g-3">
+            <div class="col-12 col-md-7">
+              <div class="row g-2">
+                <div class="col-4">
+                  <label class="form-label small fw-semibold">Código SKU</label>
+                  <input type="text" class="form-control" id="prodCodigo" placeholder="Ej. PLT-001" />
+                </div>
+                <div class="col-8">
+                  <label class="form-label small fw-semibold">Nombre del Producto *</label>
+                  <input type="text" class="form-control" id="prodNombre" required placeholder="Ej. Bandeja Paisa" />
+                </div>
+                <div class="col-12">
+                  <label class="form-label small fw-semibold">Categoría</label>
+                  <select class="form-select" id="prodCategoria"></select>
+                </div>
+                <div class="col-4">
+                  <label class="form-label small fw-semibold">Precio Venta *</label>
+                  <input type="number" min="0" step="100" class="form-control" id="prodPrecio" required />
+                </div>
+                <div class="col-4">
+                  <label class="form-label small fw-semibold">Costo Unit.</label>
+                  <input type="number" min="0" step="100" class="form-control" id="prodCosto" value="0" />
+                </div>
+                <div class="col-4">
+                  <label class="form-label small fw-semibold">Stock</label>
+                  <input type="number" min="0" step="1" class="form-control" id="prodStock" value="20" />
+                </div>
+                <div class="col-12">
+                  <label class="form-label small fw-semibold">Descripción</label>
+                  <textarea class="form-control" id="prodDescripcion" rows="2" placeholder="Ingredientes o presentación del plato..."></textarea>
+                </div>
+                <div class="col-12">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="prodDisponible" checked />
+                    <label class="form-check-label small" for="prodDisponible">Disponible para la venta en POS</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Panel de Imagen del Producto -->
+            <div class="col-12 col-md-5">
+              <label class="form-label small fw-semibold">Imagen del Producto</label>
+              <div class="border rounded-3 p-2 text-center bg-light mb-2">
+                <img id="prodImagePreview" src="" alt="Vista previa" class="prod-thumb-lg d-none mb-2" />
+                <div id="prodImageEmpty" class="py-4 text-muted">
+                  <i class="bi bi-image fs-1 d-block opacity-50"></i>
+                  <span class="small">Sin imagen seleccionada</span>
+                </div>
+              </div>
+              <div class="mb-2">
+                <label class="form-label small text-muted mb-1">Subir archivo (JPG, PNG, WEBP máx 5MB)</label>
+                <input type="file" class="form-control form-control-sm" id="prodImagenFile" accept="image/jpeg,image/png,image/webp,image/gif" />
+              </div>
+              <div class="mb-2">
+                <label class="form-label small text-muted mb-1">O pegar URL de imagen externa</label>
+                <input type="url" class="form-control form-control-sm" id="prodImagenUrl" placeholder="https://..." />
+              </div>
+              <button type="button" class="btn btn-outline-danger btn-sm w-100 d-none" id="btnRemoveProdImg">
+                <i class="bi bi-x-circle me-1"></i>Quitar imagen
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-sigr" id="btnSaveProducto">Guardar Producto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Cliente -->
+  <div class="modal fade" id="modalCliente" tabindex="-1">
+    <div class="modal-dialog">
+      <form class="modal-content" id="formCliente">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold" id="modalClienteTitle">Nuevo Cliente</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body row g-3">
+          <input type="hidden" id="cliId" />
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Nombre Completo / Razón Social *</label>
+            <input type="text" class="form-control" id="cliNombre" required />
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-semibold">Documento (CC/NIT/DNI)</label>
+            <input type="text" class="form-control" id="cliDocumento" />
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-semibold">Teléfono</label>
+            <input type="text" class="form-control" id="cliTelefono" />
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Correo Electrónico</label>
+            <input type="email" class="form-control" id="cliEmail" />
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Dirección</label>
+            <input type="text" class="form-control" id="cliDireccion" />
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Notas</label>
+            <textarea class="form-control" id="cliNotas" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-sigr">Guardar Cliente</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Movimiento Contable -->
+  <div class="modal fade" id="modalMovimiento" tabindex="-1">
+    <div class="modal-dialog">
+      <form class="modal-content" id="formMovimiento">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold" id="modalMovTitle">Nuevo Movimiento Contable</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body row g-3">
+          <input type="hidden" id="movId" />
+          <div class="col-6">
+            <label class="form-label small fw-semibold">Tipo *</label>
+            <select class="form-select" id="movTipo" required>
+              <option value="egreso">Egreso (Gasto)</option>
+              <option value="ingreso">Ingreso</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-semibold">Categoría Contable *</label>
+            <input type="text" class="form-control" id="movCategoria" list="movCategoriasSug" required placeholder="Ej. Proveedores" />
+            <datalist id="movCategoriasSug">
+              <option value="Proveedores / Insumos"></option>
+              <option value="Nómina y Personal"></option>
+              <option value="Arriendo"></option>
+              <option value="Servicios Públicos"></option>
+              <option value="Mantenimiento"></option>
+              <option value="Marketing"></option>
+              <option value="Otros Ingresos"></option>
+              <option value="Eventos y Catering"></option>
+            </datalist>
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Concepto / Descripción *</label>
+            <input type="text" class="form-control" id="movConcepto" required placeholder="Ej. Compra de verduras y proteínas" />
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-semibold">Monto *</label>
+            <input type="number" min="0" step="100" class="form-control" id="movMonto" required />
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-semibold">Método de Pago</label>
+            <select class="form-select" id="movMetodo">
+              <option value="efectivo">Efectivo</option>
+              <option value="transferencia">Transferencia</option>
+              <option value="tarjeta">Tarjeta</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-semibold">Referencia / Comprobante</label>
+            <input type="text" class="form-control" id="movReferencia" placeholder="Ej. FAC-992" />
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-semibold">Fecha</label>
+            <input type="date" class="form-control" id="movFecha" />
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Notas</label>
+            <textarea class="form-control" id="movNotas" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-sigr">Guardar Movimiento</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Factura POS Térmica (80mm) -->
+  <div class="modal fade" id="modalTicketPOS" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold"><i class="bi bi-receipt-cutoff text-warning me-2"></i>Factura Tipo POS</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body bg-light">
+          <div id="ticketPrintArea" class="pos-ticket"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cerrar</button>
+          <button type="button" class="btn btn-sigr" id="btnPrintTicketPOS">
+            <i class="bi bi-printer me-1"></i>Imprimir Factura POS
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
