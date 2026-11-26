@@ -1,0 +1,37 @@
+SIMULACIÓN CONTROLADA DE FALLO — SIGR
+Fecha: 25 de noviembre de 2026
+Cambio temporal: total esperado 30240 -> 999999 en tests/business.test.js.
+El archivo se restaura en el bloque finally; no se hace commit de esta alteración.
+
+✖ una venta POS calcula totales, descuenta stock y crea contabilidad (11.6003ms)
+✔ no permite facturar un carrito vacío (1.2552ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 1
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 233.7707
+
+✖ failing tests:
+
+test at tests\business.test.js:15:1
+✖ una venta POS calcula totales, descuenta stock y crea contabilidad (11.6003ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  30240 !== 999999
+
+      at TestContext.<anonymous> (C:\SIGR ACTUALIZADO\tests\business.test.js:31:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 30240,
+    expected: 999999,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+Código de salida observado: 1
+Archivo restaurado: tests/business.test.js

@@ -109,4 +109,4 @@ La prueba de humo verifica la página de acceso, el endpoint público `/api/heal
 - No confirmes `.env`, datos locales, tokens ni contraseñas.
 - Ejecuta `npm run check` antes de cada Pull Request.
 - Usa commits descriptivos y revisa los resultados de GitHub Actions.
-- Los despliegues a producción solo se originan en `main` después de superar calidad y pruebas.
+- Los despliegues a producción se originan en `main` y solo se consideran verificados después de superar calidad, pruebas y smoke test.

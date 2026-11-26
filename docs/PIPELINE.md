@@ -10,7 +10,7 @@
 
 SIGR es un sistema realista de gestión para restaurantes. Centraliza autenticación de administradores, menú, inventario, clientes, pedidos y facturación POS, contabilidad y reportes. La integración frecuente de estos módulos sin automatización puede introducir errores de cálculo, accesos no autorizados, pérdida de consistencia del inventario y despliegues inestables.
 
-El pipeline reduce esos riesgos mediante una secuencia repetible que instala versiones exactas de dependencias, revisa el código, ejecuta pruebas, construye un artefacto, despliega y comprueba el servicio. La regla principal es que **ningún cambio llega a producción si falla una validación**.
+El pipeline reduce esos riesgos mediante una secuencia repetible que instala versiones exactas de dependencias, revisa el código, ejecuta pruebas, construye un artefacto y comprueba el servicio desplegado. La integración nativa publica en Vercel mientras GitHub Actions ejecuta la calidad; por ello, la regla operativa es que **ningún cambio se considera entregado ni verificado si falla una validación** y debe corregirse o revertirse.
 
 ### Módulos y puntos críticos automatizados
 
@@ -34,7 +34,7 @@ El pipeline reduce esos riesgos mediante una secuencia repetible que instala ver
 - **Node Test Runner y Supertest:** pruebas unitarias e integración HTTP.
 - **npm audit:** detección de vulnerabilidades conocidas en dependencias.
 - **Integración nativa GitHub–Vercel:** build serverless y despliegue automático de `main`.
-- **Supabase:** persistencia PostgreSQL, Storage y protección RLS para usuarios.
+- **Supabase:** persistencia PostgreSQL, Storage y protección RLS en las ocho tablas operativas.
 - **Smoke test propio:** disponibilidad, contenido del login y protección de la API.
 
 ### Diagrama
@@ -88,23 +88,38 @@ npm test
 npm run build
 ```
 
-Resultado de la primera validación local:
+La última validación local, repetida después de la simulación de fallo y la restauración del archivo, produjo estos resultados:
 
 - 9 pruebas ejecutadas y 9 aprobadas.
 - 0 errores de ESLint.
-- 0 vulnerabilidades reportadas por npm audit.
+- 0 vulnerabilidades reportadas por `npm audit --audit-level=high`.
 - Build generado correctamente en `dist/`.
-- Commit inicial publicado: `c249718` (`feat: agregar autenticación y pipeline CI/CD`).
+- Smoke test público correcto: health 200, login 200 y dashboard sin sesión 401.
 
-Las capturas y salidas relevantes se conservan en `docs/evidencias/`. La ejecución remota se consulta en **GitHub → Actions → SIGR CI/CD**.
+### Resultado remoto verificado
+
+- Commit funcional publicado: `afb975f` (`fix: validar check de Vercel y limpiar login`).
+- [Ejecución #3 de GitHub Actions](https://github.com/einerp/SIGR-ACTUALIZADO/actions/runs/45743825138): los trabajos `calidad` y `despliegue` finalizaron en `success`.
+- Aplicación pública: https://sigr-actualizado.vercel.app.
+- Login productivo real: login 200, sesión 200, categorías 200 con 3 registros, productos 200 con 5 registros, dashboard 200 y logout 200.
+- Supabase: las ocho tablas operativas respondieron HTTP 200 y el bucket público `productos-imagenes` respondió HTTP 200.
+- Migración verificada: 3 categorías y 5 productos; se conservaron 3 y 5 registros respectivamente en las tablas de respaldo `categorias_legacy_uuid` y `productos_legacy_uuid`.
+
+Las capturas y salidas relevantes se conservan en `docs/evidencias/`. La ejecución remota se consulta en **GitHub → Actions → SIGR CI/CD** y el informe académico final es `AA2_Pipeline_SistemaRestaurante.pdf`.
 
 ### Simulación y manejo de fallos
 
-1. **Prueba fallida:** se introduce temporalmente una expectativa de total incorrecta. El runner devuelve código distinto de cero, `needs: calidad` impide el deploy y se corrige el cálculo o la expectativa según el análisis.
+La simulación controlada cambió temporalmente el total esperado de una venta de `30240` a `999999`. El runner terminó con código 1 y el error `30240 !== 999999`; un bloque `finally` restauró la prueba y la validación posterior volvió a 9/9. La salida completa está en `docs/evidencias/06-fallo-simulado.txt`.
+
+También se resolvieron incidencias reales: la ejecución #2 esperó un deployment creado por su propio entorno `production`; se corrigió consultando el check `Vercel` asociado al mismo SHA y la ejecución #3 confirmó la solución. Durante la migración se detectó una incompatibilidad entre IDs UUID y bigint, resuelta con respaldo, tablas legacy y mapeo de identificadores.
+
+Estrategias operativas:
+
+1. **Prueba fallida:** el trabajo de calidad termina con código distinto de cero y `needs: calidad` impide la verificación posterior. Como Vercel publica mediante su integración nativa, se corrige o revierte cualquier despliegue que no supere la validación.
 2. **Vulnerabilidad alta:** `npm audit` falla. Se revisa el árbol con `npm audit`, se actualiza a una versión compatible y se repite toda la validación; no se oculta el hallazgo.
 3. **Error de lint:** se detiene antes de compilar. Se corrige la causa, sin deshabilitar reglas para ocultarla.
 4. **Smoke test fallido:** se revisan logs de Vercel y variables de entorno. Se revierte al despliegue anterior desde Vercel y se abre un commit correctivo.
-5. **Credenciales ausentes:** el login productivo responde que falta configuración y no crea una clave insegura por defecto. Se registran `ADMIN_PASSWORD` y `SESSION_SECRET` como secretos.
+5. **Credenciales ausentes:** el login productivo responde que falta configuración y no crea una clave insegura por defecto. Se registran `ADMIN_PASSWORD` y `SESSION_SECRET` como secretos de Vercel.
 
 ## 4. Calidad y seguridad
 
@@ -116,13 +131,13 @@ Las capturas y salidas relevantes se conservan en `docs/evidencias/`. La ejecuci
 - Límite de 8 intentos de login cada 15 minutos por IP.
 - Helmet y Content Security Policy; rutas operativas protegidas por middleware.
 - Validación `X-Requested-With` en mutaciones y cookies de mismo sitio para reducir CSRF.
-- Tabla `usuarios` con RLS y acceso administrativo solo desde el backend.
-- Secretos en GitHub/Vercel, nunca en Git. `npm audit` complementa el control de dependencias.
+- RLS habilitado en las ocho tablas operativas y acceso administrativo solo desde el backend; los permisos de `service_role` están definidos en `supabase/schema.sql`.
+- Secretos en Vercel o en el `.env` local ignorado, nunca en Git. `npm audit` complementa el control de dependencias.
 
 ### Rendimiento y disponibilidad
 
 - El build y las pruebas tienen un límite de 15 minutos para evitar ejecuciones bloqueadas.
-- `concurrency` cancela ejecuciones obsoletas del mismo ref y evita despliegues fuera de orden.
+- `concurrency` cancela ejecuciones obsoletas del mismo ref y evita validaciones fuera de orden.
 - El smoke test tiene tiempo máximo de espera de 15 segundos por solicitud y mide duración total.
 - `/api/health` ofrece una comprobación ligera de disponibilidad.
 - El artefacto `BUILD_INFO.json` registra commit, fecha y versión de Node para auditoría.
@@ -141,6 +156,6 @@ Las capturas y salidas relevantes se conservan en `docs/evidencias/`. La ejecuci
 
 ## 6. Conclusiones
 
-El pipeline transforma el despliegue manual en un proceso verificable y repetible. La separación entre calidad y despliegue evita que errores conocidos lleguen a producción, mientras que las pruebas de autenticación y ventas protegen los flujos más críticos del restaurante. La evidencia de cada etapa facilita auditoría, aprendizaje y corrección.
+El pipeline transforma el despliegue manual en un proceso verificable y repetible. Las pruebas de autenticación y ventas protegen los flujos más críticos del restaurante, mientras que el check de Vercel y el smoke test determinan si cada entrega queda verificada. La integración nativa puede publicar antes de que termine Actions; por eso un fallo exige corrección o reversa y no se presenta como un bloqueo físico del deploy.
 
-La principal enseñanza es que CI/CD no consiste solo en publicar: exige controles previos, secretos bien administrados, observabilidad posterior y una estrategia de reversa. El resultado es una base que puede crecer de forma colaborativa sin sacrificar estabilidad ni seguridad.
+La principal enseñanza es que CI/CD no consiste solo en publicar: exige controles de calidad, secretos bien administrados, observabilidad posterior y una estrategia de reversa. La ejecución remota exitosa, el login productivo y la persistencia Supabase aportan evidencia comprobable de que la solución funciona y puede crecer de forma colaborativa.
