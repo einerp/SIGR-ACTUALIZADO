@@ -9,7 +9,7 @@ on:
 
 permissions:
   contents: read
-  deployments: read
+  statuses: read
 
 concurrency:
   group: sigr-${{ github.ref }}
@@ -70,7 +70,7 @@ jobs:
         with:
           node-version: 20
 
-      - name: Esperar despliegue nativo de Vercel para este commit
+      - name: Esperar check de Vercel para este commit
         id: publicar
         env:
           GH_TOKEN: ${{ github.token }}
@@ -79,26 +79,21 @@ jobs:
           PRODUCTION_URL: https://sigr-actualizado.vercel.app
         run: |
           for attempt in {1..40}; do
-            DEPLOYMENTS=$(gh api "repos/${REPOSITORY}/deployments?sha=${COMMIT_SHA}&per_page=100")
-            DEPLOYMENT_ID=$(jq -r '[.[] | select(.environment | ascii_downcase == "production")][0].id // empty' <<< "$DEPLOYMENTS")
-            if [ -n "$DEPLOYMENT_ID" ]; then
-              STATUSES=$(gh api "repos/${REPOSITORY}/deployments/${DEPLOYMENT_ID}/statuses")
-              STATE=$(jq -r '.[0].state // "pending"' <<< "$STATUSES")
-              echo "Intento ${attempt}: despliegue ${DEPLOYMENT_ID}, estado ${STATE}"
-              if [ "$STATE" = "success" ]; then
-                echo "url=${PRODUCTION_URL}" >> "$GITHUB_OUTPUT"
-                exit 0
-              fi
-              if [[ "$STATE" =~ ^(failure|error|inactive)$ ]]; then
-                echo "Vercel terminó con estado ${STATE}" >&2
-                exit 1
-              fi
-            else
-              echo "Intento ${attempt}: Vercel aún no registra el despliegue"
+            COMMIT_STATUS=$(gh api "repos/${REPOSITORY}/commits/${COMMIT_SHA}/status")
+            STATE=$(jq -r '[.statuses[] | select(.context == "Vercel")][0].state // "pending"' <<< "$COMMIT_STATUS")
+            TARGET_URL=$(jq -r '[.statuses[] | select(.context == "Vercel")][0].target_url // empty' <<< "$COMMIT_STATUS")
+            echo "Intento ${attempt}: check Vercel=${STATE} ${TARGET_URL}"
+            if [ "$STATE" = "success" ]; then
+              echo "url=${PRODUCTION_URL}" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            if [[ "$STATE" =~ ^(failure|error)$ ]]; then
+              echo "Vercel terminó con estado ${STATE}" >&2
+              exit 1
             fi
             sleep 15
           done
-          echo "Tiempo de espera agotado para el despliegue de Vercel" >&2
+          echo "Tiempo de espera agotado para el check de Vercel" >&2
           exit 1
 
       - name: Verificar disponibilidad, autenticación y salud
